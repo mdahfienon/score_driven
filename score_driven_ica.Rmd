@@ -1,0 +1,54 @@
+---
+title: "score_driven_ica"
+author: "Mathias Dah Fienon"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+
+```
+
+
+```{r}
+
+eur_usd <- readxl::read_excel("score_data.xlsx", sheet = 1,
+col_types = c("text", "numeric", "numeric","numeric", "numeric"))
+eur_usd$date <- as.Date(eur_usd$date)
+eur_usd <- eur_usd[order(eur_usd$date),]
+
+gbp_usd <- readxl::read_excel("score_data.xlsx", sheet = 2,
+col_types = c("text", "numeric", "numeric","numeric", "numeric"))
+gbp_usd$date <- as.Date(gbp_usd$date)
+gbp_usd <- gbp_usd[order(gbp_usd$date),]
+
+
+data <- as.data.frame(cbind(eur_usd$close, gbp_usd$close))  
+data <-cbind(eur_usd$date, data) 
+colnames(data) <- c("date", "euro", "gbp")
+
+
+returns <- as.data.frame(cbind(diff(log(data$euro)), diff(log(data$gbp))))
+returns <- cbind(data$date[2:4956], returns)
+colnames(returns) <- c("date", "euro", "gbp")
+returns$euro <- returns$euro - mean(returns$euro)
+returns$gbp <- returns$gbp - mean(returns$gbp)
+
+use_data <- cbind(returns$euro, returns$gbp)
+
+```
+
+
+```{r}
+
+obj_spec <- BEKKs::bekk_spec()
+x1 <- BEKKs::bekk_fit(obj_spec, use_data, QML_t_ratios = TRUE)
+
+summary(x1)
+
+residuals <- x1$e_t
+
+```
+
